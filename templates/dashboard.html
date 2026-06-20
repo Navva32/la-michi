@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block titulo %} · Inicio{% endblock %}
+{% block contenido %}
+<h2 class="mb-4">Bienvenido, {{ user.username }}</h2>
+<p class="text-muted">Rol: {{ user.get_rol_display }}
+  {% if user.sucursal %} · Sucursal: {{ user.sucursal.nombre }}{% endif %}
+</p>
+
+<div class="card">
+  <div class="card-body">
+    <p>Aquí irá el panel de ventas. Por ahora confirmamos que el login funciona.</p>
+    {% if user.rol == 'dueno' %}
+      <p class="text-success">Como dueño, podrás ver los reportes de todas las sucursales.</p>
+    {% else %}
+      <p>Como {{ user.get_rol_display }}, registrarás y consultarás ventas de tu sucursal.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
