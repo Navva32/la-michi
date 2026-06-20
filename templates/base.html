@@ -9,8 +9,9 @@
 <body class="bg-light">
     {% if user.is_authenticated %}
     <nav class="navbar navbar-dark bg-primary px-3">
-        <span class="navbar-brand">🍦 La Michi</span>
+        <a class="navbar-brand" href="{% url 'dashboard' %}">🍦 La Michi</a>
         <div class="text-white d-flex align-items-center gap-3">
+            <a href="{% url 'producto_lista' %}" class="text-white text-decoration-none">Productos</a>
             <span>{{ user.username }} ({{ user.get_rol_display }})</span>
             <form method="post" action="{% url 'logout' %}" class="m-0">
                 {% csrf_token %}
