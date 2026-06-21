@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block titulo %} · Análisis IA{% endblock %}
+{% block contenido %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <h2 class="mb-1">Análisis inteligente de ventas</h2>
+    <p class="text-muted">Recomendaciones de negocio basadas en tus datos de los últimos 30 días.</p>
+
+    <form method="post" class="mb-4">
+      {% csrf_token %}
+      <button class="btn btn-primary btn-lg">⚡ Generar análisis</button>
+    </form>
+
+    {% if recomendaciones %}
+      <div class="card mb-3">
+        <div class="card-header bg-primary text-white">
+          <strong>Recomendaciones</strong>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for r in recomendaciones %}
+            <li class="list-group-item">{{ r }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h6 class="text-muted">Datos analizados</h6>
+          <p class="mb-1">Período: últimos {{ resumen.periodo_dias }} días ·
+             Ventas totales: ${{ resumen.total_general|floatformat:2 }} ·
+             Número de ventas: {{ resumen.num_ventas }}</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

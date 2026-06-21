@@ -5,6 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import Producto, Venta, Sucursal, DetalleVenta
 from .forms import ProductoForm, DetalleVentaFormSet
+from .analisis import construir_resumen, generar_recomendaciones
 
 
 @login_required
@@ -171,3 +172,19 @@ def venta_detalle(request, pk):
     if request.user.rol != 'dueno' and venta.sucursal != request.user.sucursal:
         return redirect('venta_lista')
     return render(request, 'ventas/detalle.html', {'venta': venta})
+
+@login_required
+def analisis_ia(request):
+    if request.user.rol != 'dueno':
+        return redirect('dashboard')
+
+    recomendaciones = None
+    resumen = None
+    if request.method == 'POST':
+        resumen = construir_resumen()
+        recomendaciones = generar_recomendaciones(resumen)
+
+    return render(request, 'ventas/analisis.html', {
+        'recomendaciones': recomendaciones,
+        'resumen': resumen,
+    })
