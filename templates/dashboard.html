@@ -1,19 +1,110 @@
 {% extends 'base.html' %}
 {% block titulo %} · Inicio{% endblock %}
 {% block contenido %}
-<h2 class="mb-4">Bienvenido, {{ user.username }}</h2>
-<p class="text-muted">Rol: {{ user.get_rol_display }}
-  {% if user.sucursal %} · Sucursal: {{ user.sucursal.nombre }}{% endif %}
-</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-0">Hola, {{ user.username }}</h2>
+    <small class="text-muted">{{ user.get_rol_display }}{% if user.sucursal %} · {{ user.sucursal.nombre }}{% endif %}</small>
+  </div>
+  <a href="{% url 'venta_crear' %}" class="btn btn-primary">+ Registrar venta</a>
+</div>
 
-<div class="card">
-  <div class="card-body">
-    <p>Aquí irá el panel de ventas. Por ahora confirmamos que el login funciona.</p>
-    {% if user.rol == 'dueno' %}
-      <p class="text-success">Como dueño, podrás ver los reportes de todas las sucursales.</p>
-    {% else %}
-      <p>Como {{ user.get_rol_display }}, registrarás y consultarás ventas de tu sucursal.</p>
-    {% endif %}
+<!-- Tarjetas KPI -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="card text-bg-primary h-100"><div class="card-body">
+      <div class="small">Ventas de hoy</div>
+      <div class="fs-3 fw-bold">${{ total_hoy|floatformat:2 }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card h-100"><div class="card-body">
+      <div class="small text-muted"># de ventas hoy</div>
+      <div class="fs-3 fw-bold">{{ num_hoy }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card h-100"><div class="card-body">
+      <div class="small text-muted">Ticket promedio hoy</div>
+      <div class="fs-3 fw-bold">${{ ticket_promedio|floatformat:2 }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card h-100"><div class="card-body">
+      <div class="small text-muted">Total histórico</div>
+      <div class="fs-3 fw-bold">${{ total_historico|floatformat:2 }}</div>
+    </div></div>
   </div>
 </div>
+
+<div class="row g-4">
+  <!-- Gráfica de ventas por día -->
+  <div class="col-lg-7">
+    <div class="card h-100"><div class="card-body">
+      <h5 class="card-title">Ventas últimos 7 días</h5>
+      <canvas id="graficaDias"></canvas>
+    </div></div>
+  </div>
+
+  <!-- Top productos -->
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-body">
+      <h5 class="card-title">Top productos</h5>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Producto</th><th class="text-end">Vendidos</th><th class="text-end">Ingreso</th></tr></thead>
+        <tbody>
+          {% for p in top_productos %}
+          <tr>
+            <td>{{ p.producto__nombre }}</td>
+            <td class="text-end">{{ p.unidades }}</td>
+            <td class="text-end">${{ p.ingreso|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center text-muted py-3">Aún no hay ventas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div></div>
+  </div>
+</div>
+
+{% if es_dueno and por_sucursal %}
+<!-- Comparativo por sucursal -->
+<div class="card mt-4"><div class="card-body">
+  <h5 class="card-title">Comparativo por sucursal</h5>
+  <table class="table mb-0">
+    <thead><tr><th>Sucursal</th><th class="text-end"># ventas</th><th class="text-end">Total</th></tr></thead>
+    <tbody>
+      {% for s in por_sucursal %}
+      <tr>
+        <td>{{ s.sucursal__nombre }}</td>
+        <td class="text-end">{{ s.num }}</td>
+        <td class="text-end">${{ s.total|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div></div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const ctx = document.getElementById('graficaDias');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ labels_dias|safe }},
+      datasets: [{
+        label: 'Ventas ($)',
+        data: {{ datos_dias|safe }},
+        backgroundColor: '#0d6efd'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+</script>
 {% endblock %}

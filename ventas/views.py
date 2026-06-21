@@ -1,13 +1,67 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Producto, Venta, Sucursal
+from django.db.models import Sum, Count, F, DecimalField, ExpressionWrapper
+from django.utils import timezone
+from datetime import timedelta
+from .models import Producto, Venta, Sucursal, DetalleVenta
 from .forms import ProductoForm, DetalleVentaFormSet
 
 
 @login_required
 def dashboard(request):
-    return render(request, 'dashboard.html')
+    es_dueno = request.user.rol == 'dueno'
 
+    ventas = Venta.objects.all()
+    detalles = DetalleVenta.objects.all()
+    if not es_dueno:
+        ventas = ventas.filter(sucursal=request.user.sucursal)
+        detalles = detalles.filter(venta__sucursal=request.user.sucursal)
+
+    hoy = timezone.localdate()
+
+    ventas_hoy = ventas.filter(fecha__date=hoy)
+    total_hoy = ventas_hoy.aggregate(s=Sum('total'))['s'] or 0
+    num_hoy = ventas_hoy.count()
+    ticket_promedio = (total_hoy / num_hoy) if num_hoy else 0
+    total_historico = ventas.aggregate(s=Sum('total'))['s'] or 0
+
+    inicio = hoy - timedelta(days=6)
+    ventas_semana = (ventas.filter(fecha__date__gte=inicio)
+                     .values('fecha__date')
+                     .annotate(total=Sum('total'))
+                     .order_by('fecha__date'))
+    mapa = {v['fecha__date']: float(v['total']) for v in ventas_semana}
+    labels_dias, datos_dias = [], []
+    for i in range(7):
+        dia = inicio + timedelta(days=i)
+        labels_dias.append(dia.strftime('%d/%m'))
+        datos_dias.append(mapa.get(dia, 0))
+
+    top_productos = (detalles
+                     .values('producto__nombre')
+                     .annotate(unidades=Sum('cantidad'),
+                               ingreso=Sum(ExpressionWrapper(
+                                   F('cantidad') * F('precio_unitario'),
+                                   output_field=DecimalField())))
+                     .order_by('-unidades')[:5])
+
+    por_sucursal = None
+    if es_dueno:
+        por_sucursal = (ventas.values('sucursal__nombre')
+                        .annotate(total=Sum('total'), num=Count('id'))
+                        .order_by('-total'))
+
+    return render(request, 'dashboard.html', {
+        'es_dueno': es_dueno,
+        'total_hoy': total_hoy,
+        'num_hoy': num_hoy,
+        'ticket_promedio': ticket_promedio,
+        'total_historico': total_historico,
+        'labels_dias': labels_dias,
+        'datos_dias': datos_dias,
+        'top_productos': top_productos,
+        'por_sucursal': por_sucursal,
+    })
 
 # ---- Productos ----
 @login_required
